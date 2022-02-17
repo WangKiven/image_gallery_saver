@@ -42,13 +42,15 @@ class ImageGallerySaverPlugin : FlutterPlugin, MethodCallHandler {
                 val image = call.argument<ByteArray>("imageBytes") ?: return
                 val quality = call.argument<Int>("quality") ?: return
                 val name = call.argument<String>("name")
+                val dirName = call.argument<String>("dirName")
 
-                result.success(saveImageToGallery(BitmapFactory.decodeByteArray(image, 0, image.size), quality, name))
+                result.success(saveImageToGallery(BitmapFactory.decodeByteArray(image, 0, image.size), quality, name, dirName))
             }
             call.method == "saveFileToGallery" -> {
                 val path = call.argument<String>("file") ?: return
                 val name = call.argument<String>("name")
-                result.success(saveFileToGallery(path, name))
+                val dirName = call.argument<String>("dirName")
+                result.success(saveFileToGallery(path, name, dirName))
             }
             else -> result.notImplemented()
         }
@@ -56,26 +58,27 @@ class ImageGallerySaverPlugin : FlutterPlugin, MethodCallHandler {
     }
 
 
-    private fun generateUri(extension: String = "", name: String? = null): Uri {
+    private fun generateUri(extension: String = "", name: String? = null, dirName: String?): Uri {
         var fileName = name ?: System.currentTimeMillis().toString()
+        val addDir = if (dirName.isNullOrBlank()) "" else File.separator + dirName
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             var uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
 
             val values = ContentValues()
             values.put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-            values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_PICTURES)
+            values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + addDir)
             val mimeType = getMIMEType(extension)
             if (!TextUtils.isEmpty(mimeType)) {
                 values.put(MediaStore.Images.Media.MIME_TYPE, mimeType)
                 if (mimeType!!.startsWith("video")) {
                     uri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI
-                    values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_MOVIES)
+                    values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_MOVIES + addDir)
                 }
             }
             return applicationContext?.contentResolver?.insert(uri, values)!!
         } else {
-            val storePath = Environment.getExternalStorageDirectory().absolutePath + File.separator + Environment.DIRECTORY_PICTURES
+            val storePath = Environment.getExternalStorageDirectory().absolutePath + File.separator + Environment.DIRECTORY_PICTURES + addDir
             val appDir = File(storePath)
             if (!appDir.exists()) {
                 appDir.mkdir()
@@ -95,9 +98,9 @@ class ImageGallerySaverPlugin : FlutterPlugin, MethodCallHandler {
         return type
     }
 
-    private fun saveImageToGallery(bmp: Bitmap, quality: Int, name: String?): HashMap<String, Any?> {
+    private fun saveImageToGallery(bmp: Bitmap, quality: Int, name: String?, dirName: String?): HashMap<String, Any?> {
         val context = applicationContext
-        val fileUri = generateUri("jpg", name = name)
+        val fileUri = generateUri("jpg", name, dirName)
         return try {
             val fos = context?.contentResolver?.openOutputStream(fileUri)!!
             println("ImageGallerySaverPlugin $quality")
@@ -112,11 +115,11 @@ class ImageGallerySaverPlugin : FlutterPlugin, MethodCallHandler {
         }
     }
 
-    private fun saveFileToGallery(filePath: String, name: String?): HashMap<String, Any?> {
+    private fun saveFileToGallery(filePath: String, name: String?, dirName: String?): HashMap<String, Any?> {
         val context = applicationContext
         return try {
             val originalFile = File(filePath)
-            val fileUri = generateUri(originalFile.extension, name)
+            val fileUri = generateUri(originalFile.extension, name, dirName)
 
             val outputStream = context?.contentResolver?.openOutputStream(fileUri)!!
             val fileInputStream = FileInputStream(originalFile)
