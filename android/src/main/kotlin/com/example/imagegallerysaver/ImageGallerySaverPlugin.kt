@@ -151,7 +151,7 @@ class ImageGallerySaverPlugin : FlutterPlugin, MethodCallHandler {
         methodChannel = null;
     }
 
-    private fun onAttachedToEngine(applicationContext: Context, messenger: BinaryMessenger) {
+    fun onAttachedToEngine(applicationContext: Context, messenger: BinaryMessenger) {
         this.applicationContext = applicationContext
         methodChannel = MethodChannel(messenger, "image_gallery_saver")
         methodChannel!!.setMethodCallHandler(this)
