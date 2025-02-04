@@ -28,13 +28,23 @@ android {
     namespace='com.example.imagegallerysaver'
     compileSdkVersion 34
 
+    // 0. Get java.version property from project's gradle.properties
+    // The version value is like 1.8, 11, 17, 21, etc.
+    def javaVersion = project.rootProject.findProperty("java.version")
+    def jjv
+    if (javaVersion == null) {
+        jjv = JavaVersion.current()
+    } else {
+        jjv = JavaVersion.toVersion(javaVersion)
+    }
+
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = jjv
+        targetCompatibility = jjv
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_1_8
+        jvmTarget = jjv
     }
 
     sourceSets {
